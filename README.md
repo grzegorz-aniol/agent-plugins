@@ -81,13 +81,22 @@ each ecosystem supports.
 Cursor, Zed, Windsurf, and anything else that reads Agent Skills:
 
 ```bash
-npx skills add grzegorz-aniol/agent-plugins --all              # every skill here
+npx skills add grzegorz-aniol/agent-plugins -s '*' -a cursor        # every skill, one tool
 npx skills add grzegorz-aniol/agent-plugins -s <skill> -a cursor,zed
-npx skills add grzegorz-aniol/agent-plugins --all -g           # user-level, not per-repo
+npx skills add grzegorz-aniol/agent-plugins -s '*' -a cursor -g     # user-level, not per-repo
 ```
 
-Skills land in `.agents/skills/`. This path installs skills only, never agents or
-commands.
+With a named `--agent`, skills land in **`.agents/skills/<skill>/`** and nowhere else.
+That directory is the shared location Cursor, Zed, Codex and most other tools read,
+so one install covers them together.
+
+⚠️ **`--all` is not "all skills".** It expands to `--skill '*' --agent '*' -y`, so it
+installs to *every* agent the tool knows about, whether or not you use them. On top of
+`.agents/skills/` that also writes tool-specific locations into your repo, including a
+`.claude/skills/<skill>` symlink and a second copy under `agent/skills/`. Prefer naming
+the agents you actually use.
+
+This path installs skills only, never agents or slash commands.
 
 ### After installing
 
