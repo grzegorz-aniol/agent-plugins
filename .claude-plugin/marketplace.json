@@ -1,0 +1,28 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-plugins",
+  "description": "Reusable skills and agentic workflows for coding assistants.",
+  "owner": {
+    "name": "Grzegorz Aniol",
+    "url": "https://github.com/grzegorz-aniol"
+  },
+  "plugins": [
+    {
+      "name": "forge-fleet",
+      "source": "./plugins/forge-fleet",
+      "category": "development",
+      "description": "Run Forge Fleet (ffleet) isolated, containerized coding-agent environments per task.",
+      "skills": [
+        "./skills/ffleet"
+      ],
+      "keywords": [
+        "ffleet",
+        "forge-fleet",
+        "worktree",
+        "sandbox",
+        "docker",
+        "coding-agent"
+      ]
+    }
+  ]
+}
