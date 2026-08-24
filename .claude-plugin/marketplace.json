@@ -23,6 +23,25 @@
         "docker",
         "coding-agent"
       ]
+    },
+    {
+      "name": "docker-outside-of-docker",
+      "source": "./plugins/docker-outside-of-docker",
+      "category": "development",
+      "description": "Reach, start, and debug sibling Docker containers from inside a sandbox whose docker talks to the host daemon through a mounted socket.",
+      "skills": [
+        "./skills/docker-out-of-docker-sandbox"
+      ],
+      "keywords": [
+        "docker",
+        "docker-outside-of-docker",
+        "sandbox",
+        "containers",
+        "networking",
+        "ports",
+        "bind-mounts",
+        "compose"
+      ]
     }
   ]
 }

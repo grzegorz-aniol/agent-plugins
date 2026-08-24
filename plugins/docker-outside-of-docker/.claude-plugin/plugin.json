@@ -1,0 +1,8 @@
+{
+  "name": "docker-outside-of-docker",
+  "version": "0.1.0",
+  "description": "Reach, start, and debug sibling Docker containers from inside a sandbox whose docker talks to the host daemon through a mounted socket.",
+  "author": { "name": "Grzegorz Aniol" },
+  "license": "MIT",
+  "repository": "https://github.com/grzegorz-aniol/agent-plugins"
+}
