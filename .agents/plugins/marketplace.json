@@ -6,8 +6,26 @@
   "plugins": [
     {
       "name": "forge-fleet",
-      "source": { "source": "local", "path": "./plugins/forge-fleet" },
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "source": {
+        "source": "local",
+        "path": "./plugins/forge-fleet"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "docker-outside-of-docker",
+      "source": {
+        "source": "local",
+        "path": "./plugins/docker-outside-of-docker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
       "category": "Productivity"
     }
   ]

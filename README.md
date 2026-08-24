@@ -9,6 +9,7 @@ reads Agent Skills.
 | Plugin | What it gives you |
 |---|---|
 | `forge-fleet` | Skill `ffleet` — driving [Forge Fleet](https://ffleet.app) isolated, containerized coding-agent environments: starting work on a GitHub issue, checking on a running environment, and tearing one down safely. |
+| `docker-outside-of-docker` | Skill `docker-out-of-docker-sandbox` — working with Docker from inside a sandbox whose `docker` talks to the **host** daemon over a mounted socket, so the containers you create are siblings that never share your `localhost`. Which address and port actually reach a service, how to publish or join a network so something *is* reachable, how `-v` paths resolve on the host, and how to expose your own process. Not for dind. |
 
 ## Installing
 
