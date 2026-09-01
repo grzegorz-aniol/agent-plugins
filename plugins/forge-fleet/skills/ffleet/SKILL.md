@@ -72,14 +72,38 @@ Useful `up` flags: `--no-attach` (run in background), `-p` / `--prompt-file`,
 ## Checking on it
 
 ```bash
-ffleet ls [--json]       # all envs: container state, last activity, blocked reason
-ffleet status <slug>     # container + agent state, branch, worktree path
+ffleet ls [--json]       # all envs: container state, last activity, agent state
+ffleet status <slug>     # container + agent state + probe reason, branch, worktree path
 ffleet tail <slug> [--lines N]
 ffleet path <slug>       # worktree path, for cd or git -C
 ```
 
-`BLOCKED_REASON: waiting for input` in `ffleet ls` = the agent is asking a
-question; re-attach with `ffleet up <slug>` to answer.
+The `AGENT_STATE` column is read from the agent's own session transcript plus a
+tmux liveness check, and holds one of four values:
+
+| `AGENT_STATE` | meaning |
+|---|---|
+| `working` | mid-turn — thinking, or running a tool |
+| `idle` | the turn ended; the next move is yours |
+| `exited` | the agent process is gone (the container may still be up) |
+| `unknown` | no evidence to read — `ffleet status <slug>` names the `probe reason` |
+
+`idle` means **the turn is over**, not that a question was asked — the agent may
+be done, or stuck, or waiting on you. Read `ffleet tail <slug>` before deciding.
+Replying means attaching (`ffleet up <slug>`), which blocks a non-interactive
+caller — see the warning above.
+
+`LAST_ACTIVITY` is the agent's last transcript record, i.e. real agent activity.
+
+`ffleet ls --json` carries `agent_state` plus the raw
+`probe_reason` token (`turn_ended`, `tool_call_pending`, `agent_thinking`,
+`agent_exited`, `runtime_not_running`, `tmux_session_missing`,
+`transcript_absent`, `transcript_unreadable`, `adapter_not_supported`).
+
+> Forge Fleet ≤ 1.0.8 instead showed a `BLOCKED_REASON` column whose
+> `waiting for input` was guessed by diffing the terminal 400 ms apart. That
+> column and that value are gone; if you still see them, the installed `ffleet`
+> predates the fix.
 
 ## Removing safely
 
