@@ -17,6 +17,18 @@
       "category": "Productivity"
     },
     {
+      "name": "double-check",
+      "source": {
+        "source": "local",
+        "path": "./plugins/double-check"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
       "name": "docker-outside-of-docker",
       "source": {
         "source": "local",

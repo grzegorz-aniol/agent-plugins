@@ -1,0 +1,12 @@
+{
+  "name": "double-check",
+  "version": "0.1.0",
+  "description": "Post-implementation self-review: after finishing a task, re-read every change looking for bugs, inconsistencies, and needless complexity.",
+  "author": { "name": "Grzegorz Aniol" },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Double Check",
+    "shortDescription": "Post-implementation self-review of all session changes."
+  }
+}
