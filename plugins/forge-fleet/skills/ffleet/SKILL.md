@@ -3,10 +3,12 @@ name: ffleet
 description: >
   How I run Forge Fleet (`ffleet`) — isolated, containerized coding-agent
   environments per task. Use when: spinning up work on a GitHub issue, checking
-  on a running agent environment, or tearing one down — but only in a repo
-  already configured for ffleet; if it isn't, say so and stop. Trigger keywords:
-  "ffleet", "forge fleet", "spin up an environment", "worktree environment",
-  "sandbox for issue", "remove the environment", "ffleet up", "ffleet remove".
+  on a running agent environment, restoring environments after a reboot, or
+  tearing one down — but only in a repo already configured for ffleet; if it
+  isn't, say so and stop. Trigger keywords: "ffleet", "forge fleet", "spin up
+  an environment", "worktree environment", "sandbox for issue", "remove the
+  environment", "sweep merged environments", "ffleet up", "ffleet remove",
+  "ffleet restore".
 user-invocable: true
 ---
 
@@ -28,7 +30,8 @@ isn't configured and that `ffleet init` (`-y` for defaults) would set it up, the
 carry on with whatever they actually asked, without ffleet.
 
 Each environment = a **git worktree on its own branch** + a **Docker container**
-+ a **coding-agent session**, named by a short **slug**.
++ a **coding-agent session**, named by a short **slug** (the `SHORT` column in
+`ffleet ls` — that's the value every command takes).
 
 **All commands run from inside the project repo** — any subdirectory or any of
 its worktrees works; `ffleet` resolves the project from the current directory
@@ -38,11 +41,15 @@ its worktrees works; `ffleet` resolves the project from the current directory
 `ffleet up` is **state-driven**: absent env → create; live session → attach;
 stopped/dead → rebuild from current config and resume. Same command every time.
 
-> **Two commands attach to an interactive tmux/shell session and will block a
-> non-interactive caller: `ffleet up` (without `--no-attach`) and `ffleet goto`.**
-> Agents: always add `--no-attach` to `up`, and read a worktree with
-> `git -C "$(ffleet path <slug>)" …` instead of `goto`. Humans detach with
-> `Ctrl-B` then `D` — the agent keeps running.
+> **Blocking hazards for non-interactive callers.** `ffleet goto` and `ffleet
+> up` (when it attaches) open an interactive tmux/shell session; `up` can also
+> stop at a "newer image available — pull it now?" prompt. **Agents: run
+> `ffleet up -y`** — it never attaches (unless `--attach` is given) and turns
+> the pull prompt into a warning. Read a worktree with
+> `git -C "$(ffleet path <slug>)" …` instead of `goto`. Whether a plain `up`
+> attaches is the project's `attach` config key; `--attach`/`--no-attach`
+> override it either way. Humans detach with `Ctrl-B` then `D` — the agent
+> keeps running.
 
 ## Starting work
 
@@ -56,27 +63,40 @@ ffleet up -t plan 355     # harden the ticket first (plan-orchestrator)
 ```
 
 Templates exist per project — check `[templates.*]` in that project's
-`ffleet.toml` before assuming `task`/`plan` are available (`ffleet project ls`
+`ffleet.toml` before assuming `task`/`plan` are available (`ffleet projects ls`
 prints each project's id; its config is `~/.forge-fleet/<id>/ffleet.toml`).
 
 **Ad-hoc**, no issue behind it — invent a unique slug and pass the prompt:
 
 ```bash
-ffleet up --no-attach issue-slug-unique-name -p "…what to do…"
+ffleet up -y issue-slug-unique-name -p "…what to do…"
 ```
 
-Useful `up` flags: `--no-attach` (run in background), `-p` / `--prompt-file`,
-`--from <branch>` (base a first-time worktree on an existing branch),
+Useful `up` flags: `-y` (unattended, see below), `--no-attach` / `--attach`,
+`-p` / `--prompt-file`, `--from <branch>` (base a first-time worktree on an
+existing branch), `--subagent <name>` (override the template's subagent),
+`--here` (in-place mode: agent over the current directory, no worktree),
 `--peek` (side-effect-free: attach only if the agent is already live).
 
 ## Checking on it
 
 ```bash
-ffleet ls [--json]       # all envs: container state, last activity, agent state
-ffleet status <slug>     # container + agent state + probe reason, branch, worktree path
+ffleet ls [--json]       # all envs: container/runtime state, last activity, agent state, PR
+ffleet status <slug>     # runtime + agent state + probe reason, branch, worktree path
 ffleet tail <slug> [--lines N]
 ffleet path <slug>       # worktree path, for cd or git -C
 ```
+
+`RUNTIME` is the container-side verdict: `starting` (bounded by a grace
+period), `running`, `stopped`, `failed` (launched but the agent never came
+up), or `ghost` (an in-place env whose directory was deleted). Environments
+whose worktree registration or container went missing are listed and called
+out in a **"broken environment(s)"** warning with a reason — never run
+`git worktree prune` inside a container to "fix" one.
+
+The `PR` column joins the environment's branch to its pull requests: `merged
+#4`, `open #9`, or `—` when nothing is known. It needs the `gh` CLI and a
+`pm = "github"` project; without either it just reads `—`.
 
 The `AGENT_STATE` column is read from the agent's own session transcript plus a
 tmux liveness check, and holds one of four values:
@@ -105,10 +125,24 @@ caller — see the warning above.
 > column and that value are gone; if you still see them, the installed `ffleet`
 > predates the fix.
 
+## After a reboot
+
+A host reboot or Docker daemon restart kills the containers; worktrees,
+branches and session metadata survive.
+
+```bash
+ffleet restore           # revive every env whose recorded intent was 'running'
+ffleet projects restore  # same, across every registered project
+```
+
+Environments parked with `ffleet stop` stay down. Nothing attaches and no
+message is sent — the agents come back idle.
+
 ## Removing safely
 
-`remove` stops the container, **deletes the worktree**, and deletes the branch
-if ffleet created it (a `--from` branch is left alone). Irreversible.
+`remove` (alias `rm`) stops the container, **deletes the worktree**, and
+deletes the branch if ffleet created it (a `--from` branch is left alone).
+Irreversible.
 
 **Land the work first — ffleet never pushes or opens a PR for you.** Check
 `ffleet status <slug>` for the branch, make sure the PR is merged or the commits
@@ -117,13 +151,22 @@ are pushed, *then* remove.
 ```bash
 ffleet stop <slug>       # just park it: container down, worktree/branch kept
 ffleet remove <slug>     # prompts, and warns about uncommitted/unpushed work
+ffleet remove --done     # sweep: multiselect of envs whose PR merged (none open)
 ```
+
+`--done` refreshes remote refs, then offers every environment whose branch has
+a merged pull request and no open one. **Ticking an entry is the approval —
+there is no second prompt.** An env with unsaved work is listed with its reason
+but never pre-ticked. Needs `gh` and `pm = "github"`, and it's interactive —
+don't use it as an agent.
 
 ## `-y` — unattended mode
 
-`-y` / `--yes` skips the confirmation prompt on `remove`, `project rm`,
-`project prune`, and `init`. Use it in scripts and non-interactive runs.
-(`up` has no `-y`; its unattended switch is `--no-attach`.)
+`-y` / `--yes` skips the confirmation prompt on `remove`, `projects rm`,
+`projects prune`, and `init`. Use it in scripts and non-interactive runs.
+On `up`, `-y` means something different: never attach (unless `--attach` is
+given) and downgrade the image-pull prompt to a warning — it's the
+agent-safe way to run `up`.
 
 **`-y` also skips the unsaved-work warning** on `remove` — the dirty-tree /
 unpushed-commits guard is only rendered into the prompt that `-y` bypasses. So
@@ -140,11 +183,16 @@ Anything other than empty output from either command — including an `@{u}`
 error, which means the branch was never pushed — is work that `-y` would
 silently destroy. Sort it out before removing.
 
-## Project registry & setup
+## Project registry & machine-wide verbs
 
 ```bash
 ffleet init [-y]               # one-time per repo; create-only, never overwrites
-ffleet project ls [--json]
-ffleet project prune [-y]      # drop stale entries + their ~/.forge-fleet dirs
-ffleet project rm <id> [-y]    # delete one project's registry entry + home dir
+ffleet projects [ls] [--json]  # every registered project, envs grouped under it
+ffleet projects stop           # park the whole fleet, every project
+ffleet projects restore        # machine-wide restore (see "After a reboot")
+ffleet projects prune [-y]     # drop stale entries + their ~/.forge-fleet dirs
+ffleet projects rm <id> [-y]   # delete one project's registry entry + home dir
 ```
+
+(Forge Fleet ≤ 1.0.10 called this group `ffleet project`, singular, without
+`stop`/`restore`.)
